@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>RSA firma e verifica</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px auto;
+            max-width: 600px;
+            color: #222;
+        }
+
+        h1,
+        h2 {
+            text-align: center;
+            color: #0055aa;
+        }
+
+        .box {
+            border: 1px solid #aaa;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            font-size: 16px;
+            padding: 7px;
+            margin-top: 4px;
+            border: 1px solid #888;
+            border-radius: 4px;
+        }
+
+        input[readonly] {
+            background: #eee;
+            color: #555;
+        }
+
+        button {
+            margin-top: 12px;
+            padding: 10px 20px;
+            background: #0055aa;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #004499;
+        }
+
+        p.message {
+            font-family: monospace;
+            white-space: pre-wrap;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>RSA firma e verifica</h1>
+
+    <div class="box" id="box1">
+        <h2>Genera chiavi</h2>
+        <button onclick="generaChiavi()">Genera Chiavi</button>
+        <p>p: <span id="valP"></span></p>
+        <p>q: <span id="valQ"></span></p>
+        <p>N: <span id="valN"></span></p>
+        <p>V: <span id="valV"></span></p>
+        <p>Chiave Privata: <span id="chiavePriv"></span></p>
+        <p>Chiave Pubblica: <span id="chiavePub"></span></p>
+    </div>
+
+    <div class="box" id="box2">
+        <h2>Firma la frase</h2>
+        <label for="fraseFirmaInput">Frase da firmare:</label>
+        <input type="text" id="fraseFirmaInput" placeholder="Scrivi qui la frase">
+        <button onclick="firma()">Firma</button>
+        <p id="messaggioFirma" class="message"></p>
+    </div>
+
+    <div class="box" id="box3">
+        <h2>Verifica la firma</h2>
+        <label for="fraseVerificaInput">Frase:</label>
+        <input type="text" id="fraseVerificaInput" placeholder="Frase da verificare">
+        <label for="firmaVerificaInput">Firma digitale:</label>
+        <input type="text" id="firmaVerificaInput" readonly>
+        <button onclick="verifica()">Verifica</button>
+        <p id="risultatoVerifica" class="message"></p>
+    </div>
+
+    <script>
+        let primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997];
+
+        let p, q, N, V, Npri, Npub;
+
+        function generaChiavi() {
+            do {
+                p = primes[Math.floor(Math.random() * primes.length)];
+                q = primes[Math.floor(Math.random() * primes.length)];
+            } while (p === q);
+
+            N = p * q;
+            V = (p - 1) * (q - 1);
+
+            for (let i = 2; i < V; i++) {
+                let divisibile = false;
+                for (let f = 1; f <= V; f++) {
+                    if (V % f === 0 && i % f === 0 && f !== 1) {
+                        divisibile = true;
+                        break;
+                    }
+                }
+                if (!divisibile) {
+                    Npri = i;
+                    break;
+                }
+            }
+
+            for (let i = 1; i < V; i++) {
+                if ((Npri * i) % V === 1) {
+                    Npub = i;
+                    break;
+                }
+            }
+
+
+            document.getElementById("valP").innerText = p;
+            document.getElementById("valQ").innerText = q;
+            document.getElementById("valN").innerText = N;
+            document.getElementById("valV").innerText = V;
+            document.getElementById("chiavePriv").innerText = Npri;
+            document.getElementById("chiavePub").innerText = Npub;
+
+
+            document.getElementById("fraseFirmaInput").value = "";
+            document.getElementById("messaggioFirma").innerText = "";
+            document.getElementById("fraseVerificaInput").value = "";
+            document.getElementById("firmaVerificaInput").value = "";
+            document.getElementById("risultatoVerifica").innerText = "";
+        }
+
+        function firma() {
+            let frase = document.getElementById("fraseFirmaInput").value.trim();
+            if (!frase) {
+                alert("Inserisci una frase");
+                return;
+            }
+
+            let h1 = 2;
+            let h2 = 1;
+            for (let i = 0; i < frase.length; i++) {
+                h1 = (h1 * 31 * frase.charCodeAt(i)) % 1000000;
+                h2 = (h2 * 156 * frase.charCodeAt(i)) % 1000000;
+            }
+            let hash = (h1 ^ h2) % 10000;
+            let firmaDigitale = (BigInt(hash) ** BigInt(Npri)) % BigInt(N);
+
+            document.getElementById("messaggioFirma").innerText =
+                "Frase: \"" + frase + "\"\nHash: " + hash + "\nFirma: " + firmaDigitale;
+
+            // Passa al box verifica
+            document.getElementById("fraseVerificaInput").value = frase;
+            document.getElementById("firmaVerificaInput").value = firmaDigitale;
+            document.getElementById("risultatoVerifica").innerText = "";
+        }
+
+        function verifica() {
+            let frase = document.getElementById("fraseVerificaInput").value.trim();
+            let firmaStr = document.getElementById("firmaVerificaInput").value.trim();
+            if (!frase || !firmaStr) {
+                alert("Inserisci frase e firma");
+                return;
+            }
+            let firmaDigitale = BigInt(firmaStr);
+
+            let h1 = 2;
+            let h2 = 1;
+            for (let i = 0; i < frase.length; i++) {
+                h1 = (h1 * 31 * frase.charCodeAt(i)) % 1000000;
+                h2 = (h2 * 156 * frase.charCodeAt(i)) % 1000000;
+            }
+            let hash = (h1 ^ h2) % 10000;
+
+            let hashVerificato = (firmaDigitale ** BigInt(Npub)) % BigInt(N);
+
+            let risultato;
+            if (hashVerificato === BigInt(hash)) {
+                risultato = "Firma valida!";
+            } else {
+                risultato = "Firma NON valida!";
+            }
+
+
+            document.getElementById("risultatoVerifica").innerText = risultato;
+        }
+    </script>
+
+</body>
+
+</html>
